@@ -362,8 +362,41 @@ With this, we can now go to localhost:30001 and see our sparta test app working.
 
 ## With the database
 
+Now we can integrate the database to have our 2-tiered architecture deployed with Kubernetes.
+
+First get the correct mongo image from Docker Hub (3.2.20)
+
 ```
-docker pull mongo
+docker pull mongo:3.2.20
 ```
 
-volume -> mongo -> mongo svc -> autoscaler -> app -> app svc -> autoscaler
+I then ran the image as a container (`docker run -d mongo:3.2.20`) in the background and went into it with `docker exec -it containerid sh`
+
+Now we need to simply edit the mongod.conf file to have the bind ip set to 0.0.0.0:
+- In the mongo image, in /etc/ there is a mongod.conf.orig
+- I copied the file to my local machine, and edited the line
+- Finally I copied it back to the original image: `docker cp mongod.conf.orig containerid:/etc/`
+
+Then I saved the editied container as an image to my docker hub, so I could reference it in my mongo deploy script.
+
+I also had to create a mongo service.
+
+With the mongo service, I could add the environment variable for DB_HOST in the app deploy script, referencing the mongo service to get its IP.
+
+We can combine the deploy scripts into one script, splitting them up with `---` so when we create the object it creates them one after the other: (see `app-deploy.yml`)
+```
+volume -> mongo -> mongo svc -> db autoscaler -> app -> app svc -> autoscaler
+```
+
+You will have to seed one of the app pods so that the database is seeded (issue with mongo 3.2.20 and node 12):
+```
+kubectl exec pod-name  env node seeds/seed.js
+```
+We could run this in the node deploy script:
+
+Bash commands in kubernetes:
+```
+command:
+- #!/bin/bash
+- echo "this is a bash command"
+```

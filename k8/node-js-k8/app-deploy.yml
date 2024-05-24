@@ -1,0 +1,105 @@
+---
+# volume
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-db
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-deployment  # The name of the Deployment is "nodejs-deployment".
+spec:
+  selector:
+    matchLabels: 
+      app: mongo  # The selector specifies that the Deployment will manage Pods with the label "app: nodejs".
+  replicas: 3  # Specifies that three replicas (Pods) of the application should be running at any time.
+  template:
+    metadata: 
+      labels:
+        app: mongo  # Labels applied to the Pods created by this Deployment. They must match the selector.
+    spec:
+      containers:
+      - name: mongo  # The name of the container within the Pod.
+        image: hosuaa/mongo:v1  # The Docker image to use for this container.
+        ports:
+        - containerPort: 27017
+        volumeMounts:
+        - name: storage
+          mountPath: /data/db
+      volumes:
+      - name: storage
+        persistentVolumeClaim:
+          claimName: mongo-db
+---
+# mongo service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-svc
+  namespace: default
+spec:
+  ports: 
+  - nodePort: 30001 #range is 30000-32768. if you dont specify, it will select randomly
+    port: 27017 # host
+    targetPort: 27017 # container
+  selector:
+    app: mongo
+  type: NodePort # also LoadBalancer - for local use cluster ip
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodejs-deployment  # The name of the Deployment is "nodejs-deployment".
+spec:
+  selector:
+    matchLabels: 
+      app: nodejs  # The selector specifies that the Deployment will manage Pods with the label "app: nodejs".
+  replicas: 3  # Specifies that three replicas (Pods) of the application should be running at any time.
+  template:
+    metadata: 
+      labels:
+        app: nodejs  # Labels applied to the Pods created by this Deployment. They must match the selector.
+    spec:
+      containers:
+      - name: nodejs  # The name of the container within the Pod.
+        image: hosuaa/node-app:latest  # The Docker image to use for this container.
+        ports:
+        - containerPort: 3000  # The port that this container exposes, typically 3000 for Node.js apps.
+        env:
+        - name: DB_HOST
+          value: mongodb://mongo-svc:27017/posts
+        command: ["node", "seeds/seed.js"]
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: 512Mi
+            cpu: "1"
+          requests:
+            memory: 256Mi
+            cpu: "0.2"
+
+ 
+# create a kubernetes nginx-service.yml to create a k8 servicekube
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodejs-svc
+  namespace: default
+spec:
+  ports: 
+  - nodePort: 30002 #range is 30000-32768. if you dont specify, it will select randomly
+    port: 3000 # host
+    targetPort: 3000 # container
+  selector:
+    app: nodejs
+  type: NodePort # also LoadBalancer - for local use cluster ip
+
+# kubectl exec pod-name  env node seeds/seed.js
