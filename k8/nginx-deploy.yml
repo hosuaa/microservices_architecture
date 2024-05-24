@@ -1,0 +1,22 @@
+---
+# remember all objects have apiVersion, kind, metadata and spec
+
+apiVersion: apps/v1 # Specifies the API version being used
+kind: Deployment  # this is a Deployment object
+metadata:
+  name: nginx-deployment # The name of the Deployment
+spec:
+  selector:
+    matchLabels: 
+      app: nginx # The selector specifies that the Deployment will manage Pods with the label "app: nginx"
+  replicas: 3 # three replicas (Pods) of the application should be running at any time.
+  template:
+    metadata: 
+      labels:
+        app: nginx # Labels applied to the Pods created by this Deployment. They must match the selector. (line 11)
+    spec:
+      containers:
+      - name: nginx # The name of the container within the Pod.
+        image: hosuaa/tech258-nginx:latest # The Docker image to use for this container.
+        ports:
+        - containerPort: 80 # The port that this container exposes, which is 80 for HTTP.

@@ -1,0 +1,24 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodejs-deployment  # The name of the Deployment is "nodejs-deployment".
+spec:
+  selector:
+    matchLabels: 
+      app: nodejs  # The selector specifies that the Deployment will manage Pods with the label "app: nodejs".
+  replicas: 3  # Specifies that three replicas (Pods) of the application should be running at any time.
+  template:
+    metadata: 
+      labels:
+        app: nodejs  # Labels applied to the Pods created by this Deployment. They must match the selector.
+    spec:
+      containers:
+      - name: nodejs  # The name of the container within the Pod.
+        image: hosuaa/node-app:latest  # The Docker image to use for this container.
+        ports:
+        - containerPort: 3000  # The port that this container exposes, typically 3000 for Node.js apps.
+        env:
+        - name: DB_HOST
+          value: mongodb://10.102.67.30:27017/posts
+        imagePullPolicy: Always
